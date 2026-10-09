@@ -1,0 +1,595 @@
+<title>QA Portfolio Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: the repo's folder tree is the navigation rail; each folder opens a working view of charts above its records. */
+:root {
+  --bg: #f3f5f8; --rail: #e8ecf1; --surface: #fdfdfe; --surface-2: #eef1f5;
+  --ink: #10151c; --ink-2: #4a5462; --muted: #76808d; --line: #dde2e9; --axis: #bfc7d1;
+  --accent: #2a78d6; --accent-ink: #1c5cab; --on-accent: #ffffff;
+  --s1: #2a78d6; --s2: #eb6834;
+  --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b; --neutral: #c0c6ce;
+  --shadow: 0 1px 2px rgba(16, 21, 28, .06);
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116; --rail: #0a0d11; --surface: #171b22; --surface-2: #1f252e;
+    --ink: #f2f5f8; --ink-2: #b8c1cc; --muted: #838d9a; --line: #272e38; --axis: #3a4350;
+    --accent: #3987e5; --accent-ink: #86b6ef; --on-accent: #ffffff;
+    --s1: #3987e5; --s2: #d95926; --neutral: #4a525e;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1116; --rail: #0a0d11; --surface: #171b22; --surface-2: #1f252e;
+  --ink: #f2f5f8; --ink-2: #b8c1cc; --muted: #838d9a; --line: #272e38; --axis: #3a4350;
+  --accent: #3987e5; --accent-ink: #86b6ef; --on-accent: #ffffff;
+  --s1: #3987e5; --s2: #d95926; --neutral: #4a525e;
+  --shadow: none; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+.rail { background: var(--rail); border-right: 1px solid var(--line); padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; }
+.brand { font: 600 17px/1.2 var(--display); letter-spacing: .01em; padding-inline: 6px; }
+.brand small { display: block; font: 400 12px/1.4 var(--body); color: var(--muted); margin-top: 3px; }
+.proj { display: flex; flex-direction: column; gap: 4px; padding-inline: 6px; }
+.proj label { font-size: 12px; font-weight: 500; color: var(--ink-2); }
+.proj select { width: 100%; min-width: 0; }
+.tree { display: flex; flex-direction: column; gap: 2px; font: 13px/1.3 var(--mono); }
+.tree button { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 7px 6px; cursor: pointer; color: var(--ink-2); }
+.tree button:hover { background: var(--surface-2); color: var(--ink); }
+.tree button[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow), inset 0 0 0 1px var(--line); }
+.tree .br { color: var(--axis); white-space: pre; }
+.tree .ct { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.sync { margin-top: auto; font-size: 12px; color: var(--muted); padding-inline: 6px; }
+
+.main { padding: 24px 28px 48px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.head h1 { font: 600 27px/1.15 var(--display); margin: 0; text-wrap: balance; }
+.head p { margin: 0; color: var(--ink-2); max-width: 65ch; flex-basis: 100%; }
+.path { font: 12px var(--mono); color: var(--muted); }
+
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 14px; background: var(--surface-2); border: 1px dashed var(--axis); border-radius: 8px; color: var(--ink-2); }
+.banner span { flex: 1 1 260px; min-width: 0; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; }
+.kpi { display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; cursor: pointer; box-shadow: var(--shadow); }
+.kpi:hover { border-color: var(--accent); }
+.kpi .k { font: 12px var(--mono); color: var(--muted); }
+.kpi .v { font: 600 30px/1.1 var(--display); }
+.kpi .v small { font: 500 14px var(--body); color: var(--ink-2); margin-left: 4px; }
+.kpi .d { font-size: 12.5px; color: var(--ink-2); min-height: 1.5em; flex: 1; }
+.meter { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 0 2px 2px 0; }
+
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 18px; min-width: 0; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+.card.wide { grid-column: 1 / -1; }
+.card h2 { font: 600 15px/1.3 var(--body); margin: 0; }
+.card .sub { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; }
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.bar-row { display: grid; grid-template-columns: minmax(72px, 30%) minmax(0, 1fr) 46px; align-items: center; gap: 10px; }
+.bar-label { font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; line-height: 1.25; }
+.bar-track { border-left: 1px solid var(--axis); padding-block: 1px; }
+.bar-fill { display: flex; gap: 2px; height: 14px; min-width: 0; }
+.seg { min-width: 3px; cursor: default; }
+.seg:last-child { border-radius: 0 4px 4px 0; }
+.seg:hover, .seg:focus-visible { filter: brightness(1.12); outline: 2px solid var(--ink); outline-offset: 1px; }
+.bar-val { font: 12.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.empty { color: var(--muted); font-size: 13px; padding: 18px 0; }
+.line-host { min-width: 0; overflow: hidden; }
+.line-host svg { display: block; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .axis { stroke: var(--axis); stroke-width: 1; }
+svg .tick { fill: var(--muted); font: 11px var(--mono); }
+svg .end { fill: var(--ink-2); font: 500 12px var(--body); }
+svg .cross { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.toolbar input { flex: 1 1 220px; min-width: 0; max-width: 360px; }
+input[type="text"], input[type="search"], input[type="date"], input[type="number"], select, textarea { background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; padding: 7px 10px; }
+textarea { resize: vertical; min-height: 64px; }
+.btn { border: 1px solid var(--axis); background: var(--surface); border-radius: 6px; padding: 7px 14px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.btn.small { padding: 3px 9px; font-size: 12.5px; font-weight: 400; }
+.btn.danger { border-color: var(--crit); }
+
+.editor { background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.editor h2 { font: 600 15px var(--body); margin: 0; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.field label { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.editor .row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.table-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font: 500 11.5px var(--body); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child > td { border-bottom: 0; }
+td.id, td.mono { font: 12.5px var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.title { min-width: 220px; }
+td.num { font: 12.5px var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+th.num { text-align: right; }
+td.acts { white-space: nowrap; text-align: right; }
+td.acts .btn + .btn { margin-left: 4px; }
+.tag { font: 11px var(--mono); color: var(--muted); border: 1px dashed var(--axis); border-radius: 4px; padding: 0 5px; margin-left: 6px; white-space: nowrap; }
+.pill { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 2px 9px 2px 7px; border-radius: 999px; font-size: 12.5px; background: color-mix(in srgb, var(--c) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c) 55%, var(--surface)); }
+.pill .g { font-size: 11px; line-height: 1; }
+.pill select { border: 0; background: transparent; padding: 0 2px; font-size: 12.5px; cursor: pointer; }
+tr.detail td { background: var(--surface-2); }
+.dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; }
+.dl dt { font: 500 11.5px var(--body); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.dl dd { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 65ch; }
+
+.checks { display: flex; flex-direction: column; }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.check:last-child { border-bottom: 0; }
+.check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
+.check label { font-weight: 500; cursor: pointer; }
+.check p { margin: 2px 0 0; color: var(--ink-2); max-width: 65ch; }
+pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var(--ink-2); }
+
+#tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.4; padding: 6px 9px; border-radius: 6px; white-space: pre-line; max-width: 260px; }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 30; max-width: calc(100% - 32px); }
+
+@media (max-width: 880px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; gap: 10px; }
+  .tree { flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 4px; }
+  .tree button { width: auto; white-space: nowrap; padding: 7px 10px; }
+  .tree .br { display: none; }
+  .tree .ct { margin-left: 4px; }
+  .sync { margin-top: 0; }
+  .main { padding: 18px 16px 40px; }
+  .charts { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">QA Portfolio Tracker<small>Five folders of evidence per project</small></div>
+    <div class="proj"><label for="project">Project</label><select id="project"><option value="">All projects</option></select></div>
+    <nav class="tree" id="tree" aria-label="Project folders"></nav>
+    <div class="sync" id="sync" role="status">Connecting…</div>
+  </aside>
+  <main class="main">
+    <header class="head" id="head"></header>
+    <div class="banner" id="banner" hidden></div>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="tip" hidden></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = () => iso(new Date());
+  const parseDay = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+
+  // tone + glyph for every state word, so state is never carried by colour alone
+  const TONE = {
+    'Pass': ['good', '✓'], 'Fail': ['crit', '✕'], 'Blocked': ['warn', '⊘'], 'Not run': ['neutral', '○'],
+    'Flaky': ['serious', '≈'], 'Skipped': ['neutral', '○'],
+    'Open': ['crit', '●'], 'In progress': ['warn', '◐'], 'Fixed': ['good', '✓'], 'Closed': ['neutral', '✓'],
+    'Critical': ['crit', '▲'], 'High': ['serious', '▲'], 'Medium': ['warn', '■'], 'Low': ['neutral', '▼'],
+  };
+  const RESOLVED = ['Fixed', 'Closed'];
+
+  const PROJECT_FIELD = { k: 'project', label: 'Project', type: 'text', req: true, col: true, def: () => proj || lastProj };
+  const SCHEMA = {
+    testcases: {
+      tab: 'test-cases', folder: 'Test-Cases/', title: 'Test cases', one: 'test case', prefix: 'TC',
+      blurb: 'Functional and negative cases for the application under test, with the risk each one covers.',
+      fields: [
+        PROJECT_FIELD,
+        { k: 'title', label: 'Title', type: 'text', req: true, wide: true, col: true },
+        { k: 'module', label: 'Module', type: 'text', req: true, col: true },
+        { k: 'type', label: 'Type', type: 'select', opts: ['Functional', 'Negative'], col: true },
+        { k: 'priority', label: 'Priority', type: 'select', opts: ['High', 'Medium', 'Low'], col: true, pill: true },
+        { k: 'status', label: 'Last result', type: 'select', opts: ['Not run', 'Pass', 'Fail', 'Blocked'], col: true, pill: true, quick: true },
+        { k: 'automated', label: 'Automated', type: 'select', opts: ['No', 'Yes'], col: true },
+        { k: 'steps', label: 'Steps', type: 'area', wide: true },
+        { k: 'expected', label: 'Expected result', type: 'area', wide: true },
+        { k: 'risk', label: 'Risk covered (why this case matters)', type: 'area', wide: true },
+      ],
+    },
+    bugs: {
+      tab: 'bug-reports', folder: 'Bug-Reports/', title: 'Bug reports', one: 'bug report', prefix: 'BUG',
+      blurb: 'Defects with steps to reproduce, expected and actual results, severity and priority.',
+      fields: [
+        PROJECT_FIELD,
+        { k: 'title', label: 'Summary', type: 'text', req: true, wide: true, col: true },
+        { k: 'module', label: 'Module', type: 'text', req: true, col: true },
+        { k: 'severity', label: 'Severity', type: 'select', opts: ['Critical', 'High', 'Medium', 'Low'], col: true, pill: true },
+        { k: 'priority', label: 'Priority', type: 'select', opts: ['P1', 'P2', 'P3', 'P4'], col: true, mono: true },
+        { k: 'status', label: 'Status', type: 'select', opts: ['Open', 'In progress', 'Fixed', 'Closed'], col: true, pill: true, quick: true },
+        { k: 'reported', label: 'Reported', type: 'date', req: true, col: true, mono: true, def: today },
+        { k: 'resolved', label: 'Resolved', type: 'date' },
+        { k: 'steps', label: 'Steps to reproduce', type: 'area', wide: true },
+        { k: 'expected', label: 'Expected result', type: 'area', wide: true },
+        { k: 'actual', label: 'Actual result', type: 'area', wide: true },
+        { k: 'rationale', label: 'Severity rationale', type: 'area', wide: true },
+      ],
+    },
+    playwright: {
+      tab: 'playwright', folder: 'Playwright/', title: 'Playwright automation', one: 'automated scenario', prefix: 'PW',
+      blurb: 'Automated scenarios and how each one fared on its latest run, per browser.',
+      fields: [
+        PROJECT_FIELD,
+        { k: 'title', label: 'Scenario', type: 'text', req: true, wide: true, col: true },
+        { k: 'spec', label: 'Spec file', type: 'text', col: true, mono: true },
+        { k: 'browser', label: 'Browser', type: 'select', opts: ['Chromium', 'Firefox', 'WebKit'], col: true },
+        { k: 'status', label: 'Last run', type: 'select', opts: ['Pass', 'Fail', 'Flaky', 'Skipped'], col: true, pill: true, quick: true },
+        { k: 'duration', label: 'Duration (s)', type: 'number', col: true, unit: 's' },
+        { k: 'lastRun', label: 'Run date', type: 'date', col: true, mono: true, def: today },
+        { k: 'notes', label: 'Notes', type: 'area', wide: true },
+      ],
+    },
+    api: {
+      tab: 'api-testing', folder: 'API-Testing/', title: 'API testing', one: 'API check', prefix: 'API',
+      blurb: 'Request and response validation for each endpoint: status code, payload and response time.',
+      fields: [
+        PROJECT_FIELD,
+        { k: 'title', label: 'Check', type: 'text', req: true, wide: true, col: true },
+        { k: 'method', label: 'Method', type: 'select', opts: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], col: true, mono: true },
+        { k: 'endpoint', label: 'Endpoint', type: 'text', req: true, col: true, mono: true },
+        { k: 'expected', label: 'Expected status', type: 'number', col: true },
+        { k: 'actual', label: 'Actual status', type: 'number', col: true },
+        { k: 'ms', label: 'Response time (ms)', type: 'number', col: true, unit: ' ms' },
+        { k: 'status', label: 'Result', type: 'select', opts: ['Not run', 'Pass', 'Fail'], col: true, pill: true, quick: true },
+        { k: 'validation', label: 'Response validation (what is asserted)', type: 'area', wide: true },
+      ],
+    },
+  };
+  const COLS = Object.keys(SCHEMA);
+  const README = [
+    ['overview', 'Project overview', 'What the application is and what this project sets out to test.'],
+    ['approach', 'Testing approach', 'How scope was chosen, what was prioritised and why, and what was left out.'],
+    ['tools', 'Tools used', 'Playwright, Postman or another API client, the bug tracker, and anything else in the stack.'],
+    ['run', 'How to run it', 'Install steps and the commands that run the automated and API suites.'],
+    ['structure', 'Folder guide', 'What a reader will find in each folder and where to start.'],
+  ];
+  const TABS = ['overview', ...COLS.map(k => SCHEMA[k].tab), 'readme'];
+  const keyOfTab = t => COLS.find(k => SCHEMA[k].tab === t);
+
+  const S = { testcases: [], bugs: [], playwright: [], api: [], readme: {} };
+  const loaded = {};
+  let db = null, user = null, canWrite = false, offline = false;
+  let tab = 'overview', filter = '', editing = null, pendingDel = null, pendingClear = false;
+  let proj = '', lastProj = '';
+  try { proj = localStorage.getItem('qa-project') || ''; } catch (e) {}
+  // every chart, count and table reads through V, so the project switcher scopes the whole portal
+  const V = k => proj ? S[k].filter(r => (r.project || 'Unassigned') === proj) : S[k];
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
+  const projects = () => [...new Set([...COLS.flatMap(k => S[k].map(r => r.project || 'Unassigned')), ...Object.values(S.readme).map(d => d.project).filter(Boolean), ...(proj ? [proj] : [])])].sort();
+  const readmeFor = p => S.readme[slug(p)] || {};
+  const readmeScope = () => proj ? [proj] : projects();
+  const open = new Set();
+
+  /* ---------- small UI helpers ---------- */
+  let toastT;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+  const tip = $('#tip');
+  function showTip(text, x, y) {
+    tip.textContent = text; tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(x + 12, innerWidth - r.width - 8)) + 'px';
+    tip.style.top = Math.max(8, y - r.height - 10) + 'px';
+  }
+  document.addEventListener('mousemove', e => { const el = e.target.closest?.('[data-tip]'); if (el) showTip(el.dataset.tip, e.clientX, e.clientY); else if (!e.target.closest?.('[data-line]')) tip.hidden = true; });
+  document.addEventListener('focusin', e => { const el = e.target.closest?.('[data-tip]'); if (el) { const r = el.getBoundingClientRect(); showTip(el.dataset.tip, r.left + r.width / 2, r.top); } });
+  document.addEventListener('focusout', () => { tip.hidden = true; });
+
+  const pill = (v, inner) => { const [tone, g] = TONE[v] || ['neutral', '•']; return `<span class="pill" style="--c:var(--${tone})"><span class="g" aria-hidden="true">${g}</span>${inner ?? esc(v)}</span>`; };
+
+  /* ---------- charts ---------- */
+  const STATUS_SERIES = names => names.map(n => ({ key: n, label: n, color: (TONE[n] || ['neutral'])[0] }));
+  function stacked(rows, series, unit = '') {
+    rows = rows.filter(Boolean);
+    if (!rows.length) return `<div class="empty">Nothing to chart yet.</div>`;
+    const total = r => series.reduce((a, s) => a + (r.vals[s.key] || 0), 0);
+    const max = Math.max(1, ...rows.map(total));
+    const legend = series.length > 1 ? `<div class="legend">${series.map(s => `<span><i style="background:var(--${s.color})"></i>${esc(s.label)}</span>`).join('')}</div>` : '';
+    return legend + `<div class="bars">` + rows.map(r => {
+      const segs = series.filter(s => r.vals[s.key] > 0).map(s => `<span class="seg" tabindex="0" style="flex:${r.vals[s.key]} 0 0;background:var(--${s.color})" data-tip="${esc(r.label)}\n${esc(s.label)}: ${esc(r.vals[s.key] + unit)}"></span>`).join('');
+      return `<div class="bar-row"><div class="bar-label">${esc(r.label)}</div><div class="bar-track"><div class="bar-fill" style="width:${total(r) / max * 100}%">${segs}</div></div><div class="bar-val">${esc(total(r) + unit)}</div></div>`;
+    }).join('') + `</div>`;
+  }
+  function groupCount(list, rowKey, segKey, order) {
+    const m = new Map();
+    for (const it of list) { const r = it[rowKey] || 'Unassigned'; if (!m.has(r)) m.set(r, {}); const v = m.get(r); v[it[segKey]] = (v[it[segKey]] || 0) + 1; }
+    const keys = order || [...m.keys()].sort();
+    return keys.map(k => ({ label: k, vals: m.get(k) || {} }));
+  }
+  const card = (title, sub, body, wide) => `<section class="card${wide ? ' wide' : ''}"><div><h2>${title}</h2><p class="sub">${sub}</p></div>${body}</section>`;
+
+  const charts = {
+    tcStatus: () => card('Test results by module', 'Latest result of every test case', stacked(groupCount(V('testcases'), 'module', 'status'), STATUS_SERIES(['Pass', 'Fail', 'Blocked', 'Not run']))),
+    tcType: () => card('Functional and negative coverage', 'Test cases per module, by type', stacked(groupCount(V('testcases'), 'module', 'type'), [{ key: 'Functional', label: 'Functional', color: 's1' }, { key: 'Negative', label: 'Negative', color: 's2' }])),
+    tcProject: () => card('Test results by project', 'Latest result of every test case', stacked(groupCount(S.testcases, 'project', 'status'), STATUS_SERIES(['Pass', 'Fail', 'Blocked', 'Not run']))),
+    pwProject: () => card('Playwright runs by project', 'Latest run of each automated scenario', stacked(groupCount(S.playwright, 'project', 'status'), STATUS_SERIES(['Pass', 'Flaky', 'Fail', 'Skipped']))),
+    bugSeverity: () => {
+      const rows = ['Critical', 'High', 'Medium', 'Low'].map(sev => {
+        const of = V('bugs').filter(b => b.severity === sev);
+        const res = of.filter(b => RESOLVED.includes(b.status)).length;
+        return { label: sev, vals: { open: of.length - res, res } };
+      });
+      return card('Bugs by severity', 'Unresolved against resolved', V('bugs').length ? stacked(rows, [{ key: 'open', label: 'Unresolved', color: 's2' }, { key: 'res', label: 'Resolved', color: 's1' }]) : stacked([], []));
+    },
+    bugTrend: wide => card('Bugs reported and resolved', 'Per week, last 8 weeks', V('bugs').length ? `<div class="legend"><span><i style="background:var(--s2)"></i>Reported</span><span><i style="background:var(--s1)"></i>Resolved</span></div><div class="line-host" data-line></div>` : stacked([], []), wide),
+    pwBrowser: () => card('Playwright runs by browser', 'Latest run of each automated scenario', stacked(groupCount(V('playwright'), 'browser', 'status'), STATUS_SERIES(['Pass', 'Flaky', 'Fail', 'Skipped']))),
+    pwSlow: () => card('Slowest scenarios', 'Run duration in seconds, top 8', stacked([...V('playwright')].filter(p => p.duration > 0).sort((a, b) => b.duration - a.duration).slice(0, 8).map(p => ({ label: `${p.id} ${p.title}`, vals: { v: p.duration } })), [{ key: 'v', label: 'Duration', color: 's1' }], ' s')),
+    apiTime: () => card('API response time', 'Milliseconds per check, slowest first, top 8', stacked([...V('api')].filter(a => a.ms > 0).sort((a, b) => b.ms - a.ms).slice(0, 8).map(a => ({ label: `${a.method || ''} ${a.endpoint || a.title}`, vals: { v: a.ms } })), [{ key: 'v', label: 'Response time', color: 's1' }], ' ms')),
+    apiMethod: () => card('API results by method', 'Latest result of every check', stacked(groupCount(V('api'), 'method', 'status'), STATUS_SERIES(['Pass', 'Fail', 'Not run']))),
+  };
+
+  function bugWeeks() {
+    const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - 49);
+    const weeks = Array.from({ length: 8 }, (_, i) => { const d = new Date(start); d.setDate(d.getDate() + i * 7); return { label: `${MONTHS[d.getMonth()]} ${d.getDate()}`, reported: 0, resolved: 0 }; });
+    const idx = s => { const d = parseDay(s); if (!d) return -1; return Math.floor(Math.round((d - start) / 864e5) / 7); };
+    for (const b of V('bugs')) {
+      const a = idx(b.reported); if (weeks[a]) weeks[a].reported++;
+      if (RESOLVED.includes(b.status)) { const r = idx(b.resolved); if (weeks[r]) weeks[r].resolved++; }
+    }
+    return weeks;
+  }
+  function drawLine(el) {
+    const data = bugWeeks(), n = data.length;
+    const W = Math.max(280, Math.floor(el.clientWidth || 600)), H = 230, m = { t: 14, r: 76, b: 28, l: 30 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const max = Math.max(2, ...data.map(d => Math.max(d.reported, d.resolved)));
+    const step = Math.ceil(max / 4), top = step * Math.ceil(max / step);
+    const x = i => m.l + i * iw / (n - 1), y = v => m.t + ih - v / top * ih;
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bugs reported and resolved per week for the last 8 weeks">`;
+    for (let t = 0; t <= top; t += step) s += `<line class="${t ? 'grid' : 'axis'}" x1="${m.l}" x2="${m.l + iw}" y1="${y(t)}" y2="${y(t)}"/><text class="tick" x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+    const every = iw / n < 50 ? 2 : 1;
+    data.forEach((d, i) => { if ((n - 1 - i) % every === 0) s += `<text class="tick" x="${x(i)}" y="${H - 8}" text-anchor="middle">${d.label}</text>`; });
+    const ser = [['reported', 's2', 'Reported'], ['resolved', 's1', 'Resolved']];
+    const last = data[n - 1];
+    let ly = ser.map(([k]) => y(last[k]));
+    if (Math.abs(ly[0] - ly[1]) < 14) { const mid = (ly[0] + ly[1]) / 2, up = ly[0] <= ly[1] ? 0 : 1; ly[up] = mid - 7; ly[1 - up] = mid + 7; }
+    s += `<line class="cross" id="cross" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" visibility="hidden"/>`;
+    ser.forEach(([k, c, label], si) => {
+      s += `<path d="M${data.map((d, i) => `${x(i)},${y(d[k])}`).join('L')}" fill="none" stroke="var(--${c})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      s += `<circle cx="${x(n - 1)}" cy="${y(last[k])}" r="4" fill="var(--${c})" stroke="var(--surface)" stroke-width="2"/>`;
+      s += `<circle data-dot="${k}" r="4" fill="var(--${c})" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+      s += `<text class="end" x="${x(n - 1) + 10}" y="${ly[si] + 4}">${label}</text>`;
+    });
+    s += `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/></svg>`;
+    el.innerHTML = s; el._w = W;
+    const svg = el.firstChild, cross = $('#cross', svg);
+    svg.addEventListener('mousemove', e => {
+      const r = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left - m.l) / (iw / (n - 1))))), d = data[i];
+      cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility', 'visible');
+      ser.forEach(([k]) => { const c = $(`[data-dot="${k}"]`, svg); c.setAttribute('cx', x(i)); c.setAttribute('cy', y(d[k])); c.setAttribute('visibility', 'visible'); });
+      showTip(`Week of ${d.label}\nReported: ${d.reported}\nResolved: ${d.resolved}`, e.clientX, e.clientY);
+    });
+    svg.addEventListener('mouseleave', () => { cross.setAttribute('visibility', 'hidden'); svg.querySelectorAll('[data-dot]').forEach(c => c.setAttribute('visibility', 'hidden')); tip.hidden = true; });
+  }
+  const drawLines = () => document.querySelectorAll('[data-line]').forEach(drawLine);
+  new ResizeObserver(() => document.querySelectorAll('[data-line]').forEach(el => { if (Math.abs((el._w || 0) - Math.max(280, Math.floor(el.clientWidth))) > 2) drawLine(el); })).observe($('#view'));
+
+  /* ---------- views ---------- */
+  const readmeDone = () => readmeScope().reduce((a, p) => a + README.filter(([k]) => readmeFor(p)[k]).length, 0);
+  const readmeTotal = () => Math.max(1, readmeScope().length) * README.length;
+  const waiting = k => !offline && !loaded[k];
+  const emptyMsg = k => offline ? 'Saved records are not available in this view.' : waiting(k) ? 'Loading records…' : `No ${SCHEMA[k].one}s yet.${canWrite ? ` Add the first one with “New ${SCHEMA[k].one}”.` : ''}`;
+
+  function renderTree() {
+    const item = (t, br, label, ct) => `<button type="button" data-go="${t}" ${tab === t ? 'aria-current="page"' : ''}>${br ? `<span class="br">${br}</span>` : ''}<span>${label}</span>${ct !== undefined ? `<span class="ct">${ct}</span>` : ''}</button>`;
+    $('#tree').innerHTML = item('overview', '', 'QA-Portfolio-Project/') +
+      COLS.map(k => item(SCHEMA[k].tab, '├──', SCHEMA[k].folder, V(k).length)).join('') +
+      item('readme', '└──', 'README.md', `${readmeDone()}/${readmeTotal()}`);
+    const list = projects(), sel = $('#project'), sig = list.join('\n');
+    if (sel.dataset.sig !== sig) { sel.dataset.sig = sig; sel.innerHTML = `<option value="">All projects</option>` + list.map(p => `<option>${esc(p)}</option>`).join(''); }
+    sel.value = proj;
+  }
+  function renderHead() {
+    const k = keyOfTab(tab);
+    const [path, title, blurb] = tab === 'overview' ? ['QA-Portfolio-Project/', 'Project overview', 'Where the portfolio stands across test cases, bug reports, Playwright automation, API testing and the README.']
+      : tab === 'readme' ? ['QA-Portfolio-Project/README.md', 'README', 'The page a reviewer reads first. Tick each section off as you write it.']
+      : [`QA-Portfolio-Project/${SCHEMA[k].folder}`, SCHEMA[k].title, SCHEMA[k].blurb];
+    $('#head').innerHTML = `<h1>${title}</h1><span class="path">${esc(proj || 'All projects')} · ${path}</span><p>${blurb}</p>`;
+  }
+  function renderBanner() {
+    const n = COLS.reduce((a, k) => a + S[k].filter(r => r.example).length, 0) + Object.values(S.readme).filter(d => d.example).length;
+    const b = $('#banner'); b.hidden = !n;
+    if (n) b.innerHTML = `<span>${n} example records are loaded so you can see the portal working. They are not your data.</span>` + (canWrite ? `<button type="button" class="btn small${pendingClear ? ' danger' : ''}" data-act="clear-examples">${pendingClear ? 'Confirm: remove all examples' : 'Remove examples'}</button>` : '');
+  }
+
+  function overview() {
+    const tc = V('testcases'), pass = tc.filter(t => t.status === 'Pass').length, auto = tc.filter(t => t.automated === 'Yes').length;
+    const openBugs = V('bugs').filter(b => !RESOLVED.includes(b.status)), hot = openBugs.filter(b => ['Critical', 'High'].includes(b.severity)).length;
+    const pw = V('playwright'), pwPass = pw.filter(p => p.status === 'Pass').length, flaky = pw.filter(p => p.status === 'Flaky').length;
+    const api = V('api'), apiPass = api.filter(a => a.status === 'Pass').length, timed = api.filter(a => a.ms > 0);
+    const avg = timed.length ? Math.round(timed.reduce((a, b) => a + b.ms, 0) / timed.length) : 0;
+    const rd = readmeDone(), rt = readmeTotal();
+    const kpi = (t, k, v, unit, d, p) => `<button type="button" class="kpi" data-go="${t}"><span class="k">${k}</span><span class="v">${v}<small>${unit}</small></span><span class="d">${d}</span><span class="meter" aria-hidden="true"><i style="width:${p}%"></i></span></button>`;
+    return `<div class="kpis">` +
+      kpi('test-cases', 'Test-Cases/', tc.length, 'cases', tc.length ? `${pct(pass, tc.length)}% passing · ${pct(auto, tc.length)}% automated` : 'None written yet', pct(pass, tc.length)) +
+      kpi('bug-reports', 'Bug-Reports/', openBugs.length, 'unresolved', V('bugs').length ? `${hot} critical or high · ${V('bugs').length} reported in all` : 'None reported yet', pct(V('bugs').length - openBugs.length, V('bugs').length)) +
+      kpi('playwright', 'Playwright/', pw.length ? pct(pwPass, pw.length) + '%' : '0', pw.length ? 'pass rate' : 'scenarios', pw.length ? `${pw.length} scenarios · ${flaky} flaky` : 'None automated yet', pct(pwPass, pw.length)) +
+      kpi('api-testing', 'API-Testing/', `${apiPass}/${api.length}`, 'passing', api.length ? `${avg} ms average response` : 'No checks yet', pct(apiPass, api.length)) +
+      kpi('readme', 'README.md', `${rd}/${rt}`, 'sections', rd === rt ? 'Ready for a reviewer' : `${rt - rd} still to write`, pct(rd, rt)) +
+      `</div><div class="charts" style="margin-top:12px">${!proj && projects().length > 1 ? charts.tcProject() + charts.pwProject() : ''}${charts.tcStatus()}${charts.bugSeverity()}${charts.bugTrend(true)}${charts.pwBrowser()}${charts.apiTime()}</div>`;
+  }
+
+  const TAB_CHARTS = { testcases: ['tcStatus', 'tcType'], bugs: ['bugSeverity', 'bugTrend'], playwright: ['pwBrowser', 'pwSlow'], api: ['apiTime', 'apiMethod'] };
+
+  function tableHtml(k) {
+    const sc = SCHEMA[k], cols = sc.fields.filter(f => f.col && !(f.k === 'project' && proj)), details = sc.fields.filter(f => !f.col);
+    const q = filter.trim().toLowerCase();
+    const rows = V(k).filter(r => !q || (r.id + ' ' + sc.fields.map(f => r[f.k] ?? '').join(' ')).toLowerCase().includes(q));
+    if (!rows.length) return `<div class="empty" style="padding:22px 16px">${V(k).length ? 'No records match that filter.' : emptyMsg(k)}</div>`;
+    const cell = (r, f) => {
+      const v = r[f.k];
+      if (f.k === 'title') return `<td class="title">${esc(v)}${r.example ? '<span class="tag">example</span>' : ''}</td>`;
+      if (f.quick && canWrite) return `<td>${pill(v, `<select data-quick="${f.k}" data-id="${esc(r.id)}" aria-label="${esc(f.label)} for ${esc(r.id)}">${f.opts.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`)}</td>`;
+      if (f.pill) return `<td>${v ? pill(v) : ''}</td>`;
+      if (f.type === 'number') return `<td class="num">${v === null || v === undefined || v === '' ? '–' : esc(v + (f.unit || ''))}</td>`;
+      return `<td class="${f.mono ? 'mono' : ''}">${esc(v)}</td>`;
+    };
+    return `<table><thead><tr><th>ID</th>${cols.map(f => `<th class="${f.type === 'number' ? 'num' : ''}">${esc(f.label.replace(/ \(.*\)$/, ''))}</th>`).join('')}<th></th></tr></thead><tbody>` + rows.map(r => {
+      const isOpen = open.has(r.id);
+      return `<tr><td class="id">${esc(r.id)}</td>${cols.map(f => cell(r, f)).join('')}<td class="acts">` +
+        `<button type="button" class="btn small" data-act="toggle" data-id="${esc(r.id)}" aria-expanded="${isOpen}">${isOpen ? 'Hide' : 'Details'}</button>` +
+        (canWrite ? `<button type="button" class="btn small" data-act="edit" data-id="${esc(r.id)}">Edit</button><button type="button" class="btn small${pendingDel === r.id ? ' danger' : ''}" data-act="del" data-id="${esc(r.id)}">${pendingDel === r.id ? 'Confirm delete' : 'Delete'}</button>` : '') + `</td></tr>` +
+        (isOpen ? `<tr class="detail"><td colspan="${cols.length + 2}"><dl class="dl">${details.map(f => `<div><dt>${esc(f.label)}</dt><dd>${r[f.k] ? esc(r[f.k]) : '<span class="path">Not recorded</span>'}</dd></div>`).join('')}</dl></td></tr>` : '');
+    }).join('') + `</tbody></table>`;
+  }
+
+  function editorHtml(k) {
+    const sc = SCHEMA[k], rec = editing.id ? S[k].find(r => r.id === editing.id) || {} : {};
+    const input = f => {
+      const id = `f-${f.k}`, v = rec[f.k] ?? (editing.id ? '' : (f.def ? f.def() : (f.opts ? f.opts[0] : '')));
+      if (f.type === 'select') return `<select id="${id}">${f.opts.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+      if (f.type === 'area') return `<textarea id="${id}" rows="3">${esc(v)}</textarea>`;
+      return `<input id="${id}" type="${f.type}" value="${esc(v)}"${f.req ? ' required' : ''}${f.type === 'number' ? ' min="0" step="any"' : ''}>`;
+    };
+    return `<form class="editor" id="editor"><h2>${editing.id ? `Edit ${esc(editing.id)}` : `New ${sc.one}`}</h2><div class="fields">${sc.fields.map(f => `<div class="field${f.wide ? ' wide' : ''}"><label for="f-${f.k}">${esc(f.label)}</label>${input(f)}</div>`).join('')}</div><div class="row"><button class="btn primary" type="submit">${editing.id ? 'Save changes' : `Add ${sc.one}`}</button><button class="btn" type="button" data-act="cancel">Cancel</button></div></form>`;
+  }
+
+  function readmeView() {
+    const scope = readmeScope();
+    if (!scope.length) return `<div class="empty">${offline ? 'Saved records are not available in this view.' : 'Add a record to any folder to start a project, then tick off its README sections here.'}</div>`;
+    return `<div class="charts">` + scope.map(p => {
+      const d = readmeFor(p), n = README.filter(([k]) => d[k]).length, sl = slug(p);
+      return `<section class="card"><div><h2>${esc(p)}</h2><p class="sub">${n} of ${README.length} README sections written</p></div><div class="meter" aria-hidden="true"><i style="width:${pct(n, README.length)}%"></i></div><div class="checks">` +
+        README.map(([k, t, desc]) => `<div class="check"><input type="checkbox" id="rd-${sl}-${k}" data-readme="${k}" data-proj="${esc(p)}"${d[k] ? ' checked' : ''}${canWrite ? '' : ' disabled'}><div><label for="rd-${sl}-${k}">${t}</label><p>${desc}</p></div></div>`).join('') + `</div></section>`;
+    }).join('') +
+      `<section class="card"><div><h2>Repository structure</h2><p class="sub">What a reviewer will find, with current counts</p></div><pre class="struct">QA-Portfolio-Project/\n` +
+      COLS.map(k => `├── ${SCHEMA[k].folder.padEnd(15)} ${String(V(k).length).padStart(3)} ${SCHEMA[k].one}s`).join('\n') + `\n└── ${'README.md'.padEnd(15)} ${String(readmeDone()).padStart(3)} of ${readmeTotal()} sections</pre></section></div>`;
+  }
+
+  // build the frame for the current tab once; refresh() only refills data regions, so the filter and open form survive live updates
+  function renderTab() {
+    renderHead();
+    const k = keyOfTab(tab), v = $('#view');
+    if (!k) { v.innerHTML = `<div id="body"></div>`; }
+    else v.innerHTML = `<div style="display:flex;flex-direction:column;gap:14px"><div class="charts" id="tab-charts"></div><div class="toolbar"><input type="search" id="filter" placeholder="Filter ${SCHEMA[k].title.toLowerCase()}" aria-label="Filter ${SCHEMA[k].title.toLowerCase()}" value="${esc(filter)}"><button type="button" class="btn primary" id="add-btn" data-act="add">New ${SCHEMA[k].one}</button></div><div id="editor-slot"></div><div class="table-wrap" id="tab-table"></div></div>`;
+    refresh();
+  }
+  function refresh() {
+    renderTree(); renderBanner();
+    $('#sync').textContent = offline ? 'Not connected. Records cannot be loaded or saved in this view.' : !db ? 'Connecting…' : canWrite ? 'Changes save for everyone with access.' : 'Read-only access.';
+    const k = keyOfTab(tab);
+    if (tab === 'overview') $('#body').innerHTML = overview();
+    else if (tab === 'readme') $('#body').innerHTML = readmeView();
+    else {
+      $('#tab-charts').innerHTML = TAB_CHARTS[k].map(c => charts[c]()).join('');
+      $('#tab-table').innerHTML = tableHtml(k);
+      $('#add-btn').hidden = !canWrite;
+    }
+    drawLines();
+  }
+  function go(t) {
+    if (!TABS.includes(t)) t = 'overview';
+    tab = t; filter = ''; editing = null; pendingDel = null;
+    try { history.replaceState(null, '', '#' + t); } catch (e) {}
+    renderTab();
+    scrollTo(0, 0);
+  }
+
+  /* ---------- writes ---------- */
+  async function save(fn, ok) {
+    if (!db) return toast('Not connected, so nothing was saved.');
+    try { await fn(); if (ok) toast(ok); return true; }
+    catch (e) { toast(e?.code === 'quota_exceeded' ? 'Storage is full. Delete some records, then try again.' : e?.code === 'invalid_argument' ? 'Not saved. Your access to this page may be view-only.' : 'Not saved. Check your connection and try again.'); return false; }
+  }
+  const nextId = k => { const p = SCHEMA[k].prefix; const n = Math.max(0, ...S[k].map(r => +(String(r.id).split('-').pop()) || 0)) + 1; return `${p}-${String(n).padStart(3, '0')}`; };
+  const strip = r => { const { id, ...d } = r; return d; };
+  function settleBug(d) { // keep the resolved date in step with status so the trend chart stays truthful
+    if (RESOLVED.includes(d.status)) { if (!d.resolved) d.resolved = today(); } else d.resolved = '';
+    return d;
+  }
+
+  $('#tree').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
+  $('#project').addEventListener('change', e => {
+    proj = e.target.value; editing = null; pendingDel = null;
+    try { localStorage.setItem('qa-project', proj); } catch (err) {}
+    renderTab();
+  });
+  $('#banner').addEventListener('click', async e => {
+    if (!e.target.closest('[data-act="clear-examples"]')) return;
+    if (!pendingClear) { pendingClear = true; renderBanner(); setTimeout(() => { pendingClear = false; renderBanner(); }, 5000); return; }
+    pendingClear = false;
+    const ok = await save(async () => {
+      for (const k of COLS) for (const r of S[k].filter(r => r.example)) await db.collection(k).doc(r.id).delete();
+      for (const [id, d] of Object.entries(S.readme)) if (d.example) await db.collection('readme').doc(id).delete();
+    }, 'Examples removed');
+    if (!ok) renderBanner();
+  });
+  $('#view').addEventListener('click', e => {
+    const g = e.target.closest('[data-go]'); if (g) return go(g.dataset.go);
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const k = keyOfTab(tab), id = b.dataset.id, act = b.dataset.act;
+    if (act === 'toggle') { open.has(id) ? open.delete(id) : open.add(id); refresh(); }
+    else if (act === 'add' || act === 'edit') { editing = { id: act === 'edit' ? id : null }; $('#editor-slot').innerHTML = editorHtml(k); $('#f-title').focus(); }
+    else if (act === 'cancel') { editing = null; $('#editor-slot').innerHTML = ''; }
+    else if (act === 'del') {
+      if (pendingDel !== id) { pendingDel = id; refresh(); setTimeout(() => { if (pendingDel === id) { pendingDel = null; if (keyOfTab(tab)) refresh(); } }, 4000); return; }
+      pendingDel = null; save(() => db.collection(k).doc(id).delete(), `${id} deleted`);
+    }
+  });
+  $('#view').addEventListener('input', e => { if (e.target.id === 'filter') { filter = e.target.value; $('#tab-table').innerHTML = tableHtml(keyOfTab(tab)); } });
+  $('#view').addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset.quick) {
+      const k = keyOfTab(tab), rec = S[k].find(r => r.id === t.dataset.id); if (!rec) return;
+      let d = { ...strip(rec), [t.dataset.quick]: t.value };
+      if (k === 'bugs') d = settleBug(d);
+      save(() => db.collection(k).doc(rec.id).set(d), `${rec.id} set to ${t.value}`).then(ok => { if (!ok) refresh(); });
+    } else if (t.dataset.readme) {
+      const p = t.dataset.proj, { example, ...rest } = readmeFor(p);
+      save(() => db.collection('readme').doc(slug(p)).set({ ...rest, project: p, [t.dataset.readme]: t.checked })).then(ok => { if (!ok) refresh(); });
+    }
+  });
+  $('#view').addEventListener('submit', async e => {
+    if (e.target.id !== 'editor') return;
+    e.preventDefault();
+    const k = keyOfTab(tab), d = {};
+    for (const f of SCHEMA[k].fields) { const v = $(`#f-${f.k}`).value.trim(); d[f.k] = f.type === 'number' ? (v === '' || isNaN(+v) ? null : +v) : v; }
+    if (k === 'bugs') settleBug(d);
+    const id = editing.id || nextId(k);
+    lastProj = d.project;
+    if (await save(() => db.collection(k).doc(id).set(d), editing.id ? `${id} saved` : `${id} added`)) { editing = null; const slot = $('#editor-slot'); if (slot) slot.innerHTML = ''; }
+  });
+
+  /* ---------- boot ---------- */
+  async function boot() {
+    const h = (location.hash || '').slice(1);
+    tab = TABS.includes(h) ? h : 'overview';
+    renderTab();
+    const c = window.claude;
+    if (!c?.use) { offline = true; return refresh(); }
+    [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    if (!db) { offline = true; return refresh(); }
+    canWrite = (user ? await user.can('data.write') : null) !== false;
+    const dead = () => { offline = true; refresh(); };
+    for (const k of COLS) db.collection(k).onSnapshot(snap => { S[k] = snap.docs.map(d => ({ ...d.data(), id: d.id })); loaded[k] = true; refresh(); }, dead);
+    db.collection('readme').onSnapshot(snap => { S.readme = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); refresh(); }, dead);
+    refresh();
+  }
+  boot();
+})();
+</script>
