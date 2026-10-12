@@ -24,11 +24,21 @@ scopes every chart, count and table to one project, or shows all of them.
 artifact. It is a single file: markup, styles and script, with no build step
 and no libraries. The charts are drawn by the page itself.
 
-Records are not stored in this file. The page reads and writes them through
-the artifact's shared database (`window.claude`, capabilities `db` and `user`),
-in the collections `testcases`, `bugs`, `playwright`, `api` and `readme`.
-Opened outside a Claude artifact, the page still renders but shows no records
-and cannot save.
+In the artifact, records are not stored in this file. The page reads and
+writes them through the artifact's shared database (`window.claude`,
+capabilities `db` and `user`), in the collections `testcases`, `bugs`,
+`playwright`, `api` and `readme`.
+
+## The public site
+
+https://www.dbqaportal.us.com is the same page served by GitHub Pages from
+this branch. There is no database there, so it shows `data.json`, an export of
+the artifact's records, and is read-only.
+
+- `index.html` is built from `qa-portfolio-tracker.html` by `python build.py`.
+  Edit the tracker file, then rebuild; do not edit `index.html` by hand.
+- `data.json` is a snapshot. Re-export it to update what the site shows.
+- `CNAME` holds the custom domain.
 
 ## Projects tracked so far
 

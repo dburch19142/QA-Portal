@@ -273,7 +273,7 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
 
   const S = { testcases: [], bugs: [], playwright: [], api: [], readme: {} };
   const loaded = {};
-  let db = null, user = null, canWrite = false, offline = false;
+  let db = null, user = null, canWrite = false, offline = false, snapshot = '';
   let tab = 'overview', filter = '', editing = null, pendingDel = null, pendingClear = false;
   let proj = '', lastProj = '';
   try { proj = localStorage.getItem('qa-project') || ''; } catch (e) {}
@@ -491,7 +491,7 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
   }
   function refresh() {
     renderTree(); renderBanner();
-    $('#sync').textContent = offline ? 'Not connected. Records cannot be loaded or saved in this view.' : !db ? 'Connecting…' : canWrite ? 'Changes save for everyone with access.' : 'Read-only access.';
+    $('#sync').textContent = snapshot ? `Read-only snapshot, exported ${snapshot}.` : offline ? 'Not connected. Records cannot be loaded or saved in this view.' : !db ? 'Connecting…' : canWrite ? 'Changes save for everyone with access.' : 'Read-only access.';
     const k = keyOfTab(tab);
     if (tab === 'overview') $('#body').innerHTML = overview();
     else if (tab === 'readme') $('#body').innerHTML = readmeView();
@@ -576,12 +576,23 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
   });
 
   /* ---------- boot ---------- */
+  // outside a Claude artifact there is no database, so show the exported records read-only
+  async function loadSnapshot() {
+    try {
+      const d = await (await fetch('data.json', { cache: 'no-cache' })).json();
+      for (const k of COLS) { S[k] = d[k] || []; loaded[k] = true; }
+      S.readme = d.readme || {};
+      snapshot = d.exported || 'date unknown';
+    } catch (e) { offline = true; }
+    refresh();
+  }
+
   async function boot() {
     const h = (location.hash || '').slice(1);
     tab = TABS.includes(h) ? h : 'overview';
     renderTab();
     const c = window.claude;
-    if (!c?.use) { offline = true; return refresh(); }
+    if (!c?.use) return loadSnapshot();
     [db, user] = await Promise.all([c.use('db'), c.use('user')]);
     if (!db) { offline = true; return refresh(); }
     canWrite = (user ? await user.can('data.write') : null) !== false;
