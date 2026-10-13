@@ -40,6 +40,27 @@ the artifact's records, and is read-only.
 - `data.json` is a snapshot. Re-export it to update what the site shows.
 - `CNAME` holds the custom domain.
 
+## Running tests from the portal
+
+A web page cannot start programs, so `run_helper.py` does it. It serves the
+portal at http://localhost:8765 and adds a "Run tests on this PC" panel to the
+Playwright folder:
+
+    python run_helper.py
+
+- **Watch run** runs the suite in a visible browser and shows the output live.
+- **Open Playwright UI** opens Playwright's own test runner for that project.
+
+The panel appears only on that local address, never on the public site or in
+the artifact. Each project's folder and commands are listed in `PROJECTS` at
+the top of `run_helper.py`.
+
+When a watch run finishes, each test's result, run date and duration are saved
+to its record in `data.json`, matched by project, browser and title; a test
+with no record gets a new one. A stopped run and the Playwright UI save
+nothing. The artifact's database is not updated, so re-exporting `data.json`
+from the artifact replaces these results.
+
 ## Projects tracked so far
 
 - Congress Report Card: Playwright smoke suite on three browsers, plus JMeter results

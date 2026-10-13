@@ -105,6 +105,11 @@ textarea { resize: vertical; min-height: 64px; }
 .btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
 .btn.small { padding: 3px 9px; font-size: 12.5px; font-weight: 400; }
 .btn.danger { border-color: var(--crit); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.run-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.run-name { font-weight: 500; flex: 1 1 200px; min-width: 0; }
+pre.log { font: 12.5px/1.5 var(--mono); margin: 0; max-height: 320px; overflow: auto; background: var(--surface-2); border-radius: 6px; padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .editor { background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
 .editor h2 { font: 600 15px var(--body); margin: 0; }
@@ -188,7 +193,7 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
   // tone + glyph for every state word, so state is never carried by colour alone
   const TONE = {
     'Pass': ['good', '✓'], 'Fail': ['crit', '✕'], 'Blocked': ['warn', '⊘'], 'Not run': ['neutral', '○'],
-    'Flaky': ['serious', '≈'], 'Skipped': ['neutral', '○'],
+    'Flaky': ['serious', '≈'], 'Skipped': ['neutral', '○'], 'Running': ['warn', '◐'], 'Stopped': ['neutral', '○'],
     'Open': ['crit', '●'], 'In progress': ['warn', '◐'], 'Fixed': ['good', '✓'], 'Closed': ['neutral', '✓'],
     'Critical': ['crit', '▲'], 'High': ['serious', '▲'], 'Medium': ['warn', '■'], 'Low': ['neutral', '▼'],
   };
@@ -481,12 +486,52 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
       COLS.map(k => `├── ${SCHEMA[k].folder.padEnd(15)} ${String(V(k).length).padStart(3)} ${SCHEMA[k].one}s`).join('\n') + `\n└── ${'README.md'.padEnd(15)} ${String(readmeDone()).padStart(3)} of ${readmeTotal()} sections</pre></section></div>`;
   }
 
+  /* ---------- local test runner ---------- */
+  // run_helper.py serves this page on localhost and starts the suites there; anywhere else there is no runner and none of this shows
+  const RUN_WORD = { running: 'Running', passed: 'Pass', failed: 'Fail', stopped: 'Stopped', closed: 'Closed' };
+  let runner = null, runId = '', runLog = [], runT, runSaved = '';
+  const helper = (path, body) => fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' }).then(r => r.json());
+  async function pollRunner() {
+    clearTimeout(runT);
+    try {
+      const d = await helper(`api/runner?run=${runId}&since=${runLog.length}`);
+      if (!d.projects) return;
+      runner = d;
+      if (d.run) { if (d.run.id !== runId) { runId = d.run.id; runLog = []; } runLog.push(...d.run.lines); }
+      if (d.run?.status === 'running') runT = setTimeout(pollRunner, 1000);
+      // a finished watch run has rewritten data.json, so read the records again
+      if (d.run?.saved && runSaved !== d.run.id) { runSaved = d.run.id; return loadSnapshot(); }
+    } catch (e) { if (runner) runner.lost = true; }
+    renderRunner();
+  }
+  async function runAct(path, body) {
+    try { const d = await helper(path, body); if (d.error) toast(d.error); }
+    catch (e) { toast('The local test runner did not answer. Is run_helper.py still running?'); }
+    pollRunner();
+  }
+  function renderRunner() {
+    const slot = $('#runner-slot'); if (!slot) return;
+    if (!runner) { slot.innerHTML = ''; return; }
+    const run = runner.run, busy = run?.status === 'running', old = $('#run-log');
+    const stick = !old || old.scrollTop + old.clientHeight >= old.scrollHeight - 8, at = old?.scrollTop;
+    const rows = (proj ? [proj] : runner.projects.map(p => p.name)).map(name => {
+      const p = runner.projects.find(p => p.name === name);
+      const acts = !p ? `<span class="path">No run commands are set up for this project in run_helper.py.</span>`
+        : !p.available ? `<span class="path">${esc(p.reason)}</span>`
+        : p.modes.map((m, i) => `<button type="button" class="btn small${i ? '' : ' primary'}" data-act="run" data-proj="${esc(name)}" data-mode="${esc(m.id)}"${busy ? ' disabled' : ''}>${esc(m.label)}</button>`).join('');
+      return `<div class="run-row"><span class="run-name">${esc(name)}</span>${acts}</div>`;
+    }).join('');
+    const state = run ? `<div class="run-row" role="status">${pill(RUN_WORD[run.status])}<span class="run-name">${esc(run.project)} · ${esc(run.label)}</span>${busy ? `<button type="button" class="btn small danger" data-act="stop">Stop</button>` : ''}</div><pre class="log" id="run-log" tabindex="0" aria-label="Test run output"></pre>` : '';
+    slot.innerHTML = card('Run tests on this PC', runner.lost ? 'Lost contact with run_helper.py. Start it again, then reload this page.' : 'Starts the suite in a browser window you can watch. A finished watch run saves each result to the records below.', rows + state, true);
+    const log = $('#run-log'); if (log) { log.textContent = runLog.join('\n'); log.scrollTop = stick ? log.scrollHeight : at; }
+  }
+
   // build the frame for the current tab once; refresh() only refills data regions, so the filter and open form survive live updates
   function renderTab() {
     renderHead();
     const k = keyOfTab(tab), v = $('#view');
     if (!k) { v.innerHTML = `<div id="body"></div>`; }
-    else v.innerHTML = `<div style="display:flex;flex-direction:column;gap:14px"><div class="charts" id="tab-charts"></div><div class="toolbar"><input type="search" id="filter" placeholder="Filter ${SCHEMA[k].title.toLowerCase()}" aria-label="Filter ${SCHEMA[k].title.toLowerCase()}" value="${esc(filter)}"><button type="button" class="btn primary" id="add-btn" data-act="add">New ${SCHEMA[k].one}</button></div><div id="editor-slot"></div><div class="table-wrap" id="tab-table"></div></div>`;
+    else v.innerHTML = `<div style="display:flex;flex-direction:column;gap:14px">${k === 'playwright' ? '<div id="runner-slot"></div>' : ''}<div class="charts" id="tab-charts"></div><div class="toolbar"><input type="search" id="filter" placeholder="Filter ${SCHEMA[k].title.toLowerCase()}" aria-label="Filter ${SCHEMA[k].title.toLowerCase()}" value="${esc(filter)}"><button type="button" class="btn primary" id="add-btn" data-act="add">New ${SCHEMA[k].one}</button></div><div id="editor-slot"></div><div class="table-wrap" id="tab-table"></div></div>`;
     refresh();
   }
   function refresh() {
@@ -499,6 +544,7 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
       $('#tab-charts').innerHTML = TAB_CHARTS[k].map(c => charts[c]()).join('');
       $('#tab-table').innerHTML = tableHtml(k);
       $('#add-btn').hidden = !canWrite;
+      renderRunner();
     }
     drawLines();
   }
@@ -543,7 +589,9 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
     const g = e.target.closest('[data-go]'); if (g) return go(g.dataset.go);
     const b = e.target.closest('[data-act]'); if (!b) return;
     const k = keyOfTab(tab), id = b.dataset.id, act = b.dataset.act;
-    if (act === 'toggle') { open.has(id) ? open.delete(id) : open.add(id); refresh(); }
+    if (act === 'run') runAct('api/run', { project: b.dataset.proj, mode: b.dataset.mode });
+    else if (act === 'stop') runAct('api/stop', {});
+    else if (act === 'toggle') { open.has(id) ? open.delete(id) : open.add(id); refresh(); }
     else if (act === 'add' || act === 'edit') { editing = { id: act === 'edit' ? id : null }; $('#editor-slot').innerHTML = editorHtml(k); $('#f-title').focus(); }
     else if (act === 'cancel') { editing = null; $('#editor-slot').innerHTML = ''; }
     else if (act === 'del') {
@@ -592,7 +640,7 @@ pre.struct { font: 13px/1.6 var(--mono); margin: 0; overflow-x: auto; color: var
     tab = TABS.includes(h) ? h : 'overview';
     renderTab();
     const c = window.claude;
-    if (!c?.use) return loadSnapshot();
+    if (!c?.use) { if (['localhost', '127.0.0.1'].includes(location.hostname)) pollRunner(); return loadSnapshot(); }
     [db, user] = await Promise.all([c.use('db'), c.use('user')]);
     if (!db) { offline = true; return refresh(); }
     canWrite = (user ? await user.can('data.write') : null) !== false;

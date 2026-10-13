@@ -22,11 +22,14 @@ HEAD = """<!doctype html>
 """
 
 
-def build() -> None:
+def render() -> str:
     source = SOURCE.read_text(encoding="utf-8")
     head, body = source.split(BODY_STARTS, 1)
-    page = f"{HEAD}{head.strip()}\n</head>\n<body>\n{BODY_STARTS}{body.rstrip()}\n</body>\n</html>\n"
-    (ROOT / "index.html").write_text(page, encoding="utf-8", newline="\n")
+    return f"{HEAD}{head.strip()}\n</head>\n<body>\n{BODY_STARTS}{body.rstrip()}\n</body>\n</html>\n"
+
+
+def build() -> None:
+    (ROOT / "index.html").write_text(render(), encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":
